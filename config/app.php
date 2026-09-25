@@ -6,10 +6,15 @@
  * Constantes globales y configuración del sistema.
  */
 
+// ─── Detección Automática de Entorno ────────────────────────────────────────
+$isLocal = in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1'])
+           || str_starts_with($_SERVER['HTTP_HOST'] ?? '', 'localhost:')
+           || str_starts_with($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1:');
+
 // ─── Información de la Aplicación ──────────────────────────────────────────
 define('APP_NAME',    'Menu Studio');
 define('APP_VERSION', '1.0.0');
-define('APP_ENV',     'development'); // 'development' | 'production'
+define('APP_ENV',     $isLocal ? 'development' : 'production');
 
 // ─── Rutas Base ────────────────────────────────────────────────────────────
 define('BASE_PATH',   dirname(__DIR__));
@@ -21,7 +26,8 @@ define('UPLOAD_PATH', PUBLIC_PATH . '/uploads');
 define('VIEWS_PATH',  APP_PATH . '/Views');
 
 // ─── URL Base ──────────────────────────────────────────────────────────────
-define('APP_URL',     '/MENU%20MAKER/public');
+// En local: '/MENU%20MAKER/public' | En hosting (InfinityFree): '' (raíz)
+define('APP_URL',     $isLocal ? '/MENU%20MAKER/public' : '');
 define('ASSETS_URL',  APP_URL . '/assets');
 define('UPLOADS_URL', APP_URL . '/uploads');
 

@@ -127,9 +127,16 @@ class Router
     private function getUri(): string
     {
         $uri = $_GET['url'] ?? '';
-        $uri = '/' . trim($uri, '/');
+        $uri = trim($uri, '/');
 
-        return $uri;
+        // Si Apache en hosting reescribe incluyendo el prefijo 'public', limpiarlo
+        if (str_starts_with($uri, 'public/')) {
+            $uri = substr($uri, 7);
+        } elseif ($uri === 'public') {
+            $uri = '';
+        }
+
+        return '/' . trim($uri, '/');
     }
 
     /**

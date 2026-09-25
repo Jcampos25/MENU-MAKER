@@ -11,14 +11,6 @@
 
 class Database
 {
-    // ─── Credenciales ──────────────────────────────────────────────────────
-    private const HOST     = 'localhost';
-    private const PORT     = 3306;
-    private const DB_NAME  = 'menu_studio';
-    private const USERNAME = 'root';
-    private const PASSWORD = '';
-    private const CHARSET  = 'utf8mb4';
-
     /** @var PDO|null Instancia única de conexión */
     private static ?PDO $instance = null;
 
@@ -41,12 +33,35 @@ class Database
     public static function getInstance(): PDO
     {
         if (self::$instance === null) {
+            $isLocal = in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1'])
+                       || str_starts_with($_SERVER['HTTP_HOST'] ?? '', 'localhost:')
+                       || str_starts_with($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1:');
+
+            if ($isLocal) {
+                // Entorno Local (XAMPP)
+                $host     = 'localhost';
+                $port     = 3306;
+                $dbName   = 'menu_studio';
+                $username = 'root';
+                $password = '';
+                $charset  = 'utf8mb4';
+            } else {
+                // Entorno Hosting (InfinityFree)
+                // NOTA: Ajusta el host según el 'MySQL Hostname' indicado en tu cPanel de InfinityFree
+                $host     = getenv('DB_HOST') ?: 'sql300.infinityfree.com';
+                $port     = (int)(getenv('DB_PORT') ?: 3306);
+                $dbName   = getenv('DB_NAME') ?: 'if0_43001696_menu_studio';
+                $username = getenv('DB_USER') ?: 'if0_43001696';
+                $password = getenv('DB_PASS') ?: 'nS8kvvkNhkeX7';
+                $charset  = 'utf8mb4';
+            }
+
             $dsn = sprintf(
                 'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                self::HOST,
-                self::PORT,
-                self::DB_NAME,
-                self::CHARSET
+                $host,
+                $port,
+                $dbName,
+                $charset
             );
 
             $options = [
@@ -58,12 +73,12 @@ class Database
             ];
 
             try {
-                self::$instance = new PDO($dsn, self::USERNAME, self::PASSWORD, $options);
+                self::$instance = new PDO($dsn, $username, $password, $options);
             } catch (\PDOException $e) {
                 if (defined('APP_ENV') && APP_ENV === 'development') {
-                    throw new \PDOException("Database connection failed: " . $e->getMessage());
+                    throw new \PDOException("Error de base de datos local: " . $e->getMessage());
                 }
-                throw new \PDOException("Database connection failed. Please try again later.");
+                throw new \PDOException("Error de conexión a la base de datos en hosting: " . $e->getMessage());
             }
         }
 
