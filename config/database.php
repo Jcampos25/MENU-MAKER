@@ -3,10 +3,9 @@
  * ============================================================================
  * Menu Studio — Configuración de Base de Datos
  * ============================================================================
- * Clase Singleton para conexión PDO segura a MySQL 8.0
- * - Charset: utf8mb4
- * - Emulate prepares: false (consultas preparadas nativas)
- * - Error mode: exceptions
+ * Clase Singleton para conexión PDO segura a MySQL.
+ * Configuración dual: detecta y conmuta automáticamente entre
+ * entorno LOCAL (XAMPP) y entorno EN LÍNEA (InfinityFree).
  */
 
 class Database
@@ -33,12 +32,16 @@ class Database
     public static function getInstance(): PDO
     {
         if (self::$instance === null) {
-            $isLocal = in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1'])
-                       || str_starts_with($_SERVER['HTTP_HOST'] ?? '', 'localhost:')
-                       || str_starts_with($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1:');
+            $hostHeader = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+
+            // Detección automática: Local (XAMPP) vs En Línea (InfinityFree)
+            $isLocal = in_array($hostHeader, ['localhost', '127.0.0.1', '::1'])
+                       || str_starts_with($hostHeader, 'localhost:')
+                       || str_starts_with($hostHeader, '127.0.0.1:')
+                       || (php_sapi_name() === 'cli' && empty($_SERVER['HTTP_HOST']));
 
             if ($isLocal) {
-                // Entorno Local (XAMPP)
+                // ─── 1. CONFIGURACIÓN LOCAL (XAMPP) ─────────────────────────
                 $host     = 'localhost';
                 $port     = 3306;
                 $dbName   = 'menu_studio';
@@ -46,13 +49,12 @@ class Database
                 $password = '';
                 $charset  = 'utf8mb4';
             } else {
-                // Entorno Hosting (InfinityFree)
-                // NOTA: Ajusta el host según el 'MySQL Hostname' indicado en tu cPanel de InfinityFree
-                $host     = getenv('DB_HOST') ?: 'sql300.infinityfree.com';
-                $port     = (int)(getenv('DB_PORT') ?: 3306);
-                $dbName   = getenv('DB_NAME') ?: 'if0_43001696_menu_studio';
-                $username = getenv('DB_USER') ?: 'if0_43001696';
-                $password = getenv('DB_PASS') ?: 'nS8kvvkNhkeX7';
+                // ─── 2. CONFIGURACIÓN EN LÍNEA (INFINITYFREE) ────────────────
+                $host     = 'sql205.infinityfree.com';
+                $port     = 3306;
+                $dbName   = 'if0_43001696_menu_studio';
+                $username = 'if0_43001696';
+                $password = 'nS8kvvkNhkeX7';
                 $charset  = 'utf8mb4';
             }
 
@@ -75,13 +77,14 @@ class Database
             try {
                 self::$instance = new PDO($dsn, $username, $password, $options);
             } catch (\PDOException $e) {
-                if (defined('APP_ENV') && APP_ENV === 'development') {
-                    throw new \PDOException("Error de base de datos local: " . $e->getMessage());
+                if ($isLocal) {
+                    throw new \PDOException("Error de conexión LOCAL (XAMPP): " . $e->getMessage());
                 }
-                throw new \PDOException("Error de conexión a la base de datos en hosting: " . $e->getMessage());
+                throw new \PDOException("Error de conexión EN LÍNEA (InfinityFree): " . $e->getMessage());
             }
         }
 
         return self::$instance;
     }
 }
+
