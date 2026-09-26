@@ -57,4 +57,21 @@ $router->post('/api/media/upload',           'ApiController@uploadMedia');
 $router->get('/api/media/{restaurantId}',    'ApiController@getMedia');
 
 // ─── Despachar ─────────────────────────────────────────────────────────────
-$router->dispatch();
+try {
+    $router->dispatch();
+} catch (\Throwable $e) {
+    http_response_code(500);
+    echo '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;padding:32px;max-width:850px;margin:50px auto;background:#ffffff;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.08);border-left:6px solid #ef4444;color:#1e293b">';
+    echo '<h2 style="color:#ef4444;margin-top:0;display:flex;align-items:center;gap:10px;">⚠️ Error de Ejecución</h2>';
+    echo '<p style="font-size:16px;line-height:1.6;background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #e2e8f0;word-break:break-all;"><strong>Detalle:</strong> ' . htmlspecialchars($e->getMessage()) . '</p>';
+
+    if (str_contains($e->getMessage(), "Table") || str_contains($e->getMessage(), "doesn't exist")) {
+        echo '<div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:16px;border-radius:8px;margin-top:16px;">';
+        echo '<h4 style="margin:0 0 8px 0;">💡 Solución sugerida:</h4>';
+        echo '<p style="margin:0;line-height:1.5;">Falta importar la base de datos en InfinityFree. Entra al botón morado <strong>phpMyAdmin</strong> en tu panel de InfinityFree e importa el archivo <code>database/menu_studio_full_dump.sql</code>.</p>';
+        echo '</div>';
+    }
+
+    echo '<p style="color:#94a3b8;font-size:13px;margin-top:20px;">' . htmlspecialchars($e->getFile()) . ' : línea ' . $e->getLine() . '</p>';
+    echo '</div>';
+}
